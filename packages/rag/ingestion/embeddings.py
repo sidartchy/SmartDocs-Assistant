@@ -16,6 +16,9 @@ def embed_texts(texts: List[str]) -> List[List[float]]:
 		from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 		model = os.getenv("GOOGLE_EMBEDDING_MODEL", "text-embedding-004")
+		# Google API expects the model path to start with "models/"
+		if not model.startswith("models/"):
+			model = f"models/{model}"
 		emb = GoogleGenerativeAIEmbeddings(model=model)
 		return emb.embed_documents(texts)
 	elif provider == "openai":

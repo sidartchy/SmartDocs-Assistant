@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import uuid
 from typing import Any, Dict, List, Optional
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -12,7 +13,8 @@ def _sha256_of_text(text: str) -> str:
 
 def _build_chunk_id(doc_id: str, page: Optional[int], chunk_index: int) -> str:
 	base = f"{doc_id}|{page if page is not None else 'NA'}|{chunk_index}"
-	return _sha256_of_text(base)
+	# Use stable UUID5 to satisfy Qdrant's point ID requirement (UUID or unsigned int)
+	return str(uuid.uuid5(uuid.NAMESPACE_URL, base))
 
 
 def chunk_pages(
