@@ -9,13 +9,14 @@ from packages.agents.state import booking_state_manager
 from packages.rag.chains.qa_chains import generate_answer, rewrite_question
 from packages.shared.message_store import message_store
 
-router = APIRouter()
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @router.post("")
 def chat(payload: Dict[str, Any]) -> Dict[str, Any]:
     query = str(payload.get("query", "")).strip()
-    chat_id = payload.get("chat_id")
+    # Ensure we always have a stable chat_id for this request
+    chat_id = payload.get("chat_id") or message_store.new_chat_id()
     
     if not query:
         raise HTTPException(status_code=400, detail="Query is required")
@@ -49,10 +50,10 @@ def chat(payload: Dict[str, Any]) -> Dict[str, Any]:
             response["intent"] = "qa"
     
     # Append messages to store
-    new_chat_id = chat_id if chat_id else message_store.new_chat_id()
-    message_store.append(new_chat_id, "user", query)
-    message_store.append(new_chat_id, "assistant", response["answer"])
+    message_store.append(chat_id, "user", query)
+    message_store.append(chat_id, "assistant", response["answer"])
     
-    response["chat_id"] = new_chat_id
+    response["chat_id"] = chat_id
     return response
 
+ 

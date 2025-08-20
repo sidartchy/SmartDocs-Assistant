@@ -83,7 +83,8 @@ def _select_store() -> object:
 
 store = _select_store()
 
+message_store = store
 
-__all__ = ["store", "InMemoryMessageStore", "RedisMessageStore"]
+__all__ = ["store", "message_store", "InMemoryMessageStore", "RedisMessageStore"]
 
 
