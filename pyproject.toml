@@ -23,7 +23,10 @@ dependencies = [
     "qdrant-client>=1.7.0",
     "redis>=5.0.0",
     "python-dotenv>=1.1.1",
+    "phonenumbers>=8.13.0",
+    "dateparser>=1.2.0",
     "pytest>=8.4.1",
+    "ruff>=0.12.9",
 ]
 
 [project.optional-dependencies]
