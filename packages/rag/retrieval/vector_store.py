@@ -70,11 +70,24 @@ def search(
 	)
 
 
+def clear_collection(client: QdrantClient, collection_name: str) -> None:
+	"""Clear all data from a collection."""
+	try:
+		client.delete_collection(collection_name)
+		client.recreate_collection(
+			collection_name=collection_name,
+			vectors_config=qmodels.VectorParams(size=768, distance=qmodels.Distance.COSINE),
+		)
+	except Exception as e:
+		print(f"Error clearing collection: {e}")
+
+
 __all__ = [
 	"get_qdrant_client",
 	"ensure_collection",
 	"upsert_chunks",
 	"search",
+	"clear_collection",
 ]
 
 

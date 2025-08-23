@@ -55,7 +55,7 @@ class BookingStateManager:
         state = BookingState(
             step=BookingStep.COLLECTING_NAME,
             collected={},
-            required_fields=["name", "phone", "email"],
+            required_fields=["name", "phone", "email", "date_time"],
             chat_id=chat_id
         )
         self.states[chat_id] = state

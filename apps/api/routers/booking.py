@@ -56,4 +56,22 @@ def chat(payload: Dict[str, Any]) -> Dict[str, Any]:
     response["chat_id"] = chat_id
     return response
 
+
+@router.get("/bookings")
+def get_bookings() -> Dict[str, Any]:
+    """Get all bookings for debugging purposes."""
+    try:
+        from packages.agents.tools.persistence_tools import get_all_bookings
+        bookings = get_all_bookings()
+        return {
+            "bookings": bookings,
+            "count": len(bookings)
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "bookings": [],
+            "count": 0
+        }
+
  

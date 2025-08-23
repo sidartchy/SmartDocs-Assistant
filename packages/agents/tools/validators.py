@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import datetime
 from typing import Any, Dict
 
 from langchain.prompts import ChatPromptTemplate
@@ -133,7 +134,15 @@ def resolve_date(text: str, tz: str | None = None) -> Dict[str, Any]:
     timezone_str = tz or os.getenv("DEFAULT_TZ") or "Asia/Kathmandu"
 
     parser = PydanticOutputParser(pydantic_object=DateValidation)
+    current_date = datetime.now().strftime('%Y-%m-%d')
     prompt = f"""You are a date parser. Parse natural language date/time to ISO format.
+
+IMPORTANT: 
+- Use the CURRENT date as reference (today is {current_date})
+- Return the date in ISO format: YYYY-MM-DDTHH:MM:SS
+- For "tomorrow", add 1 day to today's date
+- For "next Monday", find the next Monday from today
+- Always use the current year unless explicitly specified otherwise
 
 Timezone: {timezone_str}
 Handle phrases like: "next Monday", "tomorrow at 3pm", "in 2 weeks", "next month".
@@ -142,17 +151,97 @@ Handle phrases like: "next Monday", "tomorrow at 3pm", "in 2 weeks", "next month
 
     result = _call_llm_structured(prompt, f"Date phrase: {phrase}", parser)
     if result.get("is_valid", False):
-        return {
-            "is_valid": True,
-            "iso_date": result.get("iso_date"),
-            "natural_text": result.get("natural_text", phrase),
-            "reasoning": result.get("reasoning", "Valid date")
-        }
+        iso_date = result.get("iso_date")
+        # Validate the returned date format
+        if iso_date and len(iso_date) >= 10:
+            try:
+                # Ensure it's a valid ISO date
+                parsed_date = datetime.fromisoformat(iso_date.replace('Z', '+00:00'))
+                return {
+                    "is_valid": True,
+                    "iso_date": parsed_date.isoformat(),
+                    "natural_text": result.get("natural_text", phrase),
+                    "reasoning": result.get("reasoning", "Valid date")
+                }
+            except ValueError:
+                pass
+        
+        # If LLM parsing failed, try fallback parsing
+        return _fallback_date_parsing(phrase, timezone_str)
+    
     return {
         "is_valid": False,
         "iso_date": None,
         "natural_text": phrase,
         "reasoning": result.get("reasoning", "Invalid date")
+    }
+
+
+def _fallback_date_parsing(phrase: str, timezone_str: str) -> Dict[str, Any]:
+    """Fallback date parsing for common patterns."""
+    from datetime import datetime, timedelta
+    import re
+    
+    phrase_lower = phrase.lower().strip()
+    
+    # Handle "tomorrow"
+    if "tomorrow" in phrase_lower:
+        tomorrow = datetime.now() + timedelta(days=1)
+        # Extract time if specified
+        time_match = re.search(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', phrase_lower)
+        if time_match:
+            hour = int(time_match.group(1))
+            minute = int(time_match.group(2)) if time_match.group(2) else 0
+            ampm = time_match.group(3)
+            
+            if ampm == "pm" and hour != 12:
+                hour += 12
+            elif ampm == "am" and hour == 12:
+                hour = 0
+                
+            tomorrow = tomorrow.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        else:
+            # Default to 10 AM
+            tomorrow = tomorrow.replace(hour=10, minute=0, second=0, microsecond=0)
+            
+        return {
+            "is_valid": True,
+            "iso_date": tomorrow.isoformat(),
+            "natural_text": phrase,
+            "reasoning": "Parsed 'tomorrow' with fallback logic"
+        }
+    
+    # Handle "today"
+    if "today" in phrase_lower:
+        today = datetime.now()
+        time_match = re.search(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', phrase_lower)
+        if time_match:
+            hour = int(time_match.group(1))
+            minute = int(time_match.group(2)) if time_match.group(2) else 0
+            ampm = time_match.group(3)
+            
+            if ampm == "pm" and hour != 12:
+                hour += 12
+            elif ampm == "am" and hour == 12:
+                hour = 0
+                
+            today = today.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        else:
+            # Default to 10 AM
+            today = today.replace(hour=10, minute=0, second=0, microsecond=0)
+            
+        return {
+            "is_valid": True,
+            "iso_date": today.isoformat(),
+            "natural_text": phrase,
+            "reasoning": "Parsed 'today' with fallback logic"
+        }
+    
+    return {
+        "is_valid": False,
+        "iso_date": None,
+        "natural_text": phrase,
+        "reasoning": "Could not parse date with fallback logic"
     }
 
 

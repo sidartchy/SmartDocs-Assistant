@@ -14,3 +14,8 @@ data/uploads/
 
 # environment variables
 .env
+
+
+#credentials
+credentials.json
+token.json

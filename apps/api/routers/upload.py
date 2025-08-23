@@ -14,6 +14,7 @@ from packages.rag.retrieval.vector_store import (
 	ensure_collection,
 	get_qdrant_client,
 	upsert_chunks,
+	clear_collection,
 )
 
 
@@ -51,5 +52,55 @@ def upload_and_ingest(file: UploadFile = File(...)) -> Dict[str, Any]:
 	count = upsert_chunks(client=client, collection_name=collection, vectors=vectors, payloads=chunks, ids=ids)
 
 	return {"ingested": count, "collection": collection, "sample": chunks[0]["metadata"]}
+
+
+@router.delete("/clear")
+def clear_documents() -> Dict[str, Any]:
+	"""Clear all documents from the vector store."""
+	client = get_qdrant_client()
+	collection = os.getenv("QDRANT_COLLECTION", DEFAULT_COLLECTION)
+	
+	# Get count before clearing
+	collection_info = client.get_collection(collection)
+	points_count_before = collection_info.points_count
+	
+	# Clear the collection
+	clear_collection(client, collection)
+	
+	# Verify clearing worked
+	collection_info_after = client.get_collection(collection)
+	points_count_after = collection_info_after.points_count
+	
+	return {
+		"message": "All documents cleared successfully",
+		"collection": collection,
+		"points_cleared": points_count_before,
+		"points_remaining": points_count_after,
+		"success": points_count_after == 0
+	}
+
+
+@router.get("/status")
+def get_document_status() -> Dict[str, Any]:
+	"""Get the current status of documents in the vector store."""
+	client = get_qdrant_client()
+	collection = os.getenv("QDRANT_COLLECTION", DEFAULT_COLLECTION)
+	
+	try:
+		collection_info = client.get_collection(collection)
+		points_count = collection_info.points_count
+		
+		return {
+			"collection": collection,
+			"document_count": points_count,
+			"has_documents": points_count > 0
+		}
+	except Exception as e:
+		return {
+			"collection": collection,
+			"document_count": 0,
+			"has_documents": False,
+			"error": str(e)
+		}
 
 

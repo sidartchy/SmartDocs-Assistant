@@ -9,9 +9,11 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 SYSTEM_PROMPT = (
-	"You are a precise assistant. Answer strictly using the provided sources. "
-	"If the answer is not supported, reply: 'Not found in documents.' "
-	"Include citations inline like [filename p=page]. Be concise."
+	"You are a helpful and friendly assistant. You can handle both basic conversations and document-based questions.\n\n"
+	"For basic conversational queries (greetings, gratitude, farewells, etc.), respond naturally and warmly without needing document sources.\n\n"
+	"For questions about documents or specific information, answer strictly using the provided sources. "
+	"If the answer is not supported by the sources, reply: 'I couldn't find any relevant information in the documents.' "
+	"Include citations inline like [filename p=page] when using document sources. Be concise and helpful."
 )
 
 
@@ -123,28 +125,34 @@ def _build_citations(contexts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 	return citations
 
 
+
+
+
 def generate_answer(query: str, *, top_k: int = 6) -> Dict[str, Any]:
 	results = semantic_search(query, top_k=top_k)
-	if not results:
-		return {
-			"answer": "Not found in documents.",
-			"citations": [],
-			"confidence": 0.0,
-		}
-
-	# Simple confidence heuristic based on mean score
-	scores = [r.get("score", 0.0) for r in results]
-	mean_score = sum(scores) / max(len(scores), 1)
-
+	
+	# Always call LLM - it will handle basic conversations naturally
 	answer_text = _call_llm(query, results).strip()
 	if not answer_text:
-		answer_text = "Not found in documents."
+		answer_text = "I couldn't find any relevant information in the documents."
 
+	# If no documents found, it's likely a basic conversation or question not in docs
+	if not results:
+		return {
+			"answer": answer_text,
+			"citations": [],
+			"confidence": 1.0,  # High confidence for basic conversations
+		}
+
+	# For document queries, include citations
 	citations = _build_citations(results)
+	scores = [r.get("score", 0.0) for r in results]
+	mean_score = sum(scores) / max(len(scores), 1)
 	confidence = max(0.0, min(1.0, float(mean_score)))
+	
 	return {"answer": answer_text, "citations": citations, "confidence": confidence}
 
 
-__all__ = ["generate_answer"]
+__all__ = ["generate_answer", "rewrite_question"]
 
 
