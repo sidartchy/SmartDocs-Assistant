@@ -2,7 +2,7 @@
 
 A powerful RAG (Retrieval Augmented Generation) chatbot with conversational booking capabilities, built with FastAPI, Streamlit, and Google AI.
 
-<img src='docs/images/BasicUI.png'>
+<img src='./docs/images/BasicUI.png'>
 
 ## 🚀 Features
 
@@ -139,7 +139,7 @@ uv run streamlit run apps/frontend/streamlit_app.py
    - Get answers with source citations
    - View confidence scores and source snippets
 
-<img src='docs/images/rag_chat.png'>
+<img src='./docs/images/rag_chat.png'>
 
 ### **Booking Calls**
 
@@ -157,7 +157,7 @@ uv run streamlit run apps/frontend/streamlit_app.py
    - Calendar event is automatically created
    - Receive booking ID and meeting link
 
-<img src='docs/images/meeting_schedule.png'>
+<img src='./docs/images/meeting_schedule.png'>
 
 ### **Document Management**
 
